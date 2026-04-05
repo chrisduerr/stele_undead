@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="35" height="35">
+  <path d="M 0,33.5 H 1.5 L 18.25,16.75 V 0 H 0 Z"
+     fill="#181818"
+     stroke="none"
+  />
+  <path d="M 0,33.5 H 1.5 L 18.25,16.75 V 0"
+     fill="none"
+     stroke="#752a2a"
+     stroke-width="3"
+  />
+</svg>
