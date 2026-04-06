@@ -734,9 +734,9 @@ dependencies = [
 
 [[package]]
 name = "gio"
-version = "0.22.2"
+version = "0.22.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "816b6743c46b217aa8fba679095ac6f2162fd53259dc8f186fcdbff9c555db03"
+checksum = "17271ffcd5a3cce62e8dbe18924c0894fe125945c5f484d0820a75c2f21a4421"
 dependencies = [
  "futures-channel",
  "futures-core",
@@ -764,9 +764,9 @@ dependencies = [
 
 [[package]]
 name = "glib"
-version = "0.22.3"
+version = "0.22.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "039f93465ac17e6cb02d16f16572cd3e43a77e736d5ecc461e71b9c9c5c0569c"
+checksum = "02856b71413e175be50eff37fe0aefa53e227054ee3d96196faee8a0823cac80"
 dependencies = [
  "bitflags",
  "futures-channel",
@@ -1298,9 +1298,9 @@ checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 
 [[package]]
 name = "pango"
-version = "0.22.0"
+version = "0.22.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25d8f224eddef627b896d2f7b05725b3faedbd140e0e8343446f0d34f34238ee"
+checksum = "4804fb6018c6604eac198f0f897320d3696c9af7983cde056f07cef93cac9202"
 dependencies = [
  "gio",
  "glib",
@@ -1904,7 +1904,7 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 [[package]]
 name = "stele"
 version = "0.1.0"
-source = "git+https://github.com/chrisduerr/stele#2b2aa5ce179e08cf588770ccb1642430e4139cb7"
+source = "git+https://github.com/chrisduerr/stele#68ba017e41149caebec59712db1bc2033e3fb58e"
 dependencies = [
  "calloop",
  "calloop-wayland-source",
@@ -1931,7 +1931,7 @@ dependencies = [
 [[package]]
 name = "stele_ipc"
 version = "0.1.0"
-source = "git+https://github.com/chrisduerr/stele#2b2aa5ce179e08cf588770ccb1642430e4139cb7"
+source = "git+https://github.com/chrisduerr/stele#68ba017e41149caebec59712db1bc2033e3fb58e"
 dependencies = [
  "clap",
  "dirs",
