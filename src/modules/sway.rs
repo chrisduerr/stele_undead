@@ -10,7 +10,7 @@ use stele::calloop::generic::Generic;
 use stele::calloop::{
     self, EventSource, Interest, LoopHandle, Mode, Poll, PostAction, Readiness, Token, TokenFactory,
 };
-use stele::{Alignment, LayerContent, Module, ModuleLayer, State};
+use stele::{Alignment, LayerContent, Module, ModuleLayer, Size, State};
 use tracing::error;
 
 use crate::modules;
@@ -19,6 +19,12 @@ use crate::xdg::IconLoader;
 
 /// Workspace icon size.
 pub const ICON_SIZE: u32 = 24;
+
+/// Priority for workspace icons using their `app_id`.
+///
+/// Icons with lower array index will be preferred. Icons in this list will be
+/// prioritized over icons which aren't.
+const ICON_PRIORITY: &[&str] = &["firefox"];
 
 /// Number of workspaces rendered.
 const WORKSPACE_COUNT: usize = 5;
@@ -49,17 +55,17 @@ fn update_module(_: (), workspaces: &mut Vec<Workspace>, state: &mut State) {
 
     // Create background layers.
     let mut bg_layer = ModuleLayer::new(svg_layers::BG);
-    bg_layer.size.width = 32;
+    bg_layer.size.width = 35;
     let mut bg_alt_layer = ModuleLayer::new(svg_layers::BG_ALT);
-    bg_alt_layer.size.width = 32;
+    bg_alt_layer.size.width = 35;
 
     // Add module for each workspace.
     for (i, workspace) in workspaces.iter().enumerate() {
         let bg_layer = if workspace.focused { bg_alt_layer.clone() } else { bg_layer.clone() };
 
         let mut ws_layer = ModuleLayer::new(workspace.icon.clone());
-        ws_layer.size.width = ICON_SIZE;
-        ws_layer.size.height = ICON_SIZE;
+        ws_layer.size = Size::new(ICON_SIZE, ICON_SIZE);
+        ws_layer.margin.bottom = 3;
 
         let layers = vec![bg_layer, ws_layer];
         let mut module = Module::new(format!("ws_{i}"), Alignment::Center, layers);
@@ -195,6 +201,9 @@ impl SwayIpc {
             },
         };
 
+        // Get focused workspace name.
+        let focused_workspace = output_node.current_workspace;
+
         // Process workspace nodes.
         let workspace_nodes = output_node.nodes.into_iter();
         for workspace_node in workspace_nodes.filter(|node| node.node_type == NodeType::Workspace) {
@@ -209,38 +218,72 @@ impl SwayIpc {
                 None => continue,
             };
 
-            // Update icon and focus state based on child nodes.
-            let (icon, focused) = self.workspace_state(workspace_node);
+            // Update workspace focus.
             let workspace: &mut Workspace = &mut self.workspaces[index];
-            workspace.icon = icon.unwrap_or(svg_layers::WS_EMPTY);
-            workspace.focused = focused;
+            workspace.focused = workspace_node.name == focused_workspace;
+
+            // Update workspace icon.
+            let icon = Self::workspace_icon(&mut self.icon_loader, workspace_node);
+            workspace.icon = icon.map_or(svg_layers::WS_EMPTY, |(_, icon)| icon);
         }
     }
 
-    /// Get workspace icon and focus state.
-    fn workspace_state(&mut self, node: Node) -> (Option<LayerContent>, bool) {
-        let mut focused = false;
+    /// Determine workspace icon based on apps inside the workspace.
+    ///
+    /// The following priority is used to pick an icon:
+    ///  - Lowest index in [`ICON_PRIORITY`]
+    ///  - Order in the tree (earliest is preferred)
+    ///  - WS_FULL if workspace contains any app
+    ///  - WS_EMPTY
+    fn workspace_icon(icon_loader: &mut IconLoader, node: Node) -> Option<(String, LayerContent)> {
         let mut icon = None;
 
-        // Check whether any child is focused or has a better icon.
-        for node in node.nodes {
-            let (child_icon, child_focused) = self.workspace_state(node);
-            icon = icon.or(child_icon);
-            focused |= child_focused;
-        }
-
-        // Check whether this node is focused or has an icon.
+        // For applications, immediately return the `app_id` and icon.
         if node.node_type == NodeType::Con
             && let Some(app_id) = node.app_id
         {
-            match self.icon_loader.icon_path(&app_id) {
-                Some(icon_path) => icon = Some(icon_path.to_path_buf().into()),
-                None => icon = icon.or(Some(svg_layers::WS_FULL)),
+            let icon = match icon_loader.icon_path(&app_id) {
+                Some(icon) => icon.to_path_buf().into(),
+                None => svg_layers::WS_FULL,
+            };
+            return Some((app_id, icon));
+        }
+
+        // For containers, check whether any child has a better icon.
+        for node in node.nodes {
+            // Get icon for this child node.
+            let (child_app_id, child_icon) = match Self::workspace_icon(icon_loader, node) {
+                Some(child_icon) => child_icon,
+                None => continue,
+            };
+
+            // Short-circuit if this is the first icon we've found.
+            let (app_id, icon) = match &mut icon {
+                Some(icon) => icon,
+                None => {
+                    icon = Some((child_app_id, child_icon));
+                    continue;
+                },
+            };
+
+            // Always replace built-in `WS_FULL` icons.
+            if matches!(icon, LayerContent::Svg { .. }) {
+                *app_id = child_app_id;
+                *icon = child_icon;
+                continue;
+            }
+
+            // Determine priority based on fallback list.
+            let priority = ICON_PRIORITY.iter().position(|id| app_id == id).unwrap_or(usize::MAX);
+            let child_priority =
+                ICON_PRIORITY.iter().position(|id| &child_app_id == id).unwrap_or(usize::MAX);
+            if child_priority < priority {
+                *app_id = child_app_id;
+                *icon = child_icon;
             }
         }
-        focused |= node.focused;
 
-        (icon, focused)
+        icon
     }
 
     /// Write payload to the Sway socket.
@@ -363,8 +406,7 @@ struct Node {
 
     name: Option<String>,
     app_id: Option<String>,
-    #[serde(default)]
-    focused: bool,
+    current_workspace: Option<String>,
 
     nodes: Vec<Node>,
 }

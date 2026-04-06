@@ -94,6 +94,7 @@ impl IconLoader {
 
                                 // Replace icon if a bigger/scaleable one is found.
                                 if image_type > *existing_type {
+                                    *existing_type = image_type;
                                     *path = file.path();
                                 }
                             },

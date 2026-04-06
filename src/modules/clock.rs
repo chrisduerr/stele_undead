@@ -25,7 +25,7 @@ fn update_module(_: Instant, _: &mut (), state: &mut State) -> TimeoutAction {
     let now = Local::now();
     let date = now.format("%a. %-d").to_string();
     let mut date_layer = ModuleLayer::new(date);
-    date_layer.margin = Margin { left: 25, right: 25 };
+    date_layer.margin = Margin::new(0, 25, 0, 25);
 
     // Add date module.
     let layers = vec![background.clone(), background_svg.clone(), date_layer];
@@ -46,7 +46,7 @@ fn update_module(_: Instant, _: &mut (), state: &mut State) -> TimeoutAction {
     // Create time text layer.
     let time = now.format("%H:%M").to_string();
     let mut time_layer = ModuleLayer::new(time);
-    time_layer.margin = Margin { left: 25, right: 25 };
+    time_layer.margin = Margin::new(0, 25, 0, 25);
 
     // Add time module.
     let layers = vec![background, background_svg, time_layer];
