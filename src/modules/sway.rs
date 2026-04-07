@@ -10,7 +10,7 @@ use stele::calloop::generic::Generic;
 use stele::calloop::{
     self, EventSource, Interest, LoopHandle, Mode, Poll, PostAction, Readiness, Token, TokenFactory,
 };
-use stele::{Alignment, LayerContent, Module, ModuleLayer, Size, State};
+use stele::{Alignment, LayerContent, LayerModes, Module, ModuleLayer, Program, Size, State};
 use tracing::error;
 
 use crate::modules;
@@ -47,7 +47,7 @@ pub fn register(event_loop: &LoopHandle<'static, State>, output_name: String) {
 }
 
 #[allow(clippy::ptr_arg)]
-fn update_module(_: (), workspaces: &mut Vec<Workspace>, state: &mut State) {
+fn update_module(_: (), ipc: &mut SwayIpc, state: &mut State) {
     // Add left corner SVG module.
     let mut corner_left = modules::corner_module("ws_corner_left", Alignment::Center, true);
     corner_left.index = 0;
@@ -58,18 +58,25 @@ fn update_module(_: (), workspaces: &mut Vec<Workspace>, state: &mut State) {
     bg_layer.size.width = 35;
     let mut bg_alt_layer = ModuleLayer::new(svg_layers::BG_ALT);
     bg_alt_layer.size.width = 35;
+    let mut hover_bg_layer = ModuleLayer::new(svg_layers::BG_HOVER);
+    hover_bg_layer.size.width = 35;
+    hover_bg_layer.modes = LayerModes { default: false, hover: true, active: true };
 
     // Add module for each workspace.
-    for (i, workspace) in workspaces.iter().enumerate() {
+    for (i, workspace) in ipc.workspaces.iter().enumerate() {
         let bg_layer = if workspace.focused { bg_alt_layer.clone() } else { bg_layer.clone() };
 
         let mut ws_layer = ModuleLayer::new(workspace.icon.clone());
         ws_layer.size = Size::new(ICON_SIZE, ICON_SIZE);
         ws_layer.margin.bottom = 3;
 
-        let layers = vec![bg_layer, ws_layer];
+        let layers = vec![bg_layer, hover_bg_layer.clone(), ws_layer];
         let mut module = Module::new(format!("ws_{i}"), Alignment::Center, layers);
         module.index = 1 + i as u8;
+
+        // Switch to this workspace on click.
+        let switch_cmd = format!("workspace {}-{i}", ipc.output_name);
+        module.onclick = Some(Program { program: "swaymsg".into(), args: vec![switch_cmd] });
 
         state.update_module(module);
     }
@@ -218,7 +225,7 @@ impl SwayIpc {
                 None => continue,
             };
 
-            // Update workspace focus.
+            // Update workspace focus,
             let workspace: &mut Workspace = &mut self.workspaces[index];
             workspace.focused = workspace_node.name == focused_workspace;
 
@@ -310,7 +317,7 @@ impl SwayIpc {
 impl EventSource for SwayIpc {
     type Error = io::Error;
     type Event = ();
-    type Metadata = Vec<Workspace>;
+    type Metadata = SwayIpc;
     type Ret = ();
 
     fn process_events<F>(
@@ -357,7 +364,7 @@ impl EventSource for SwayIpc {
                         }
 
                         // Update modules.
-                        callback((), &mut self.workspaces);
+                        callback((), self);
                     },
                     // Request full tree state on workspace/window changes.
                     PayloadType::EventWorkspace | PayloadType::EventWindow => {

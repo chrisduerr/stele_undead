@@ -18,18 +18,20 @@ mod svg_layers {
         LayerContent::Svg { id: u32::MAX, data: include_bytes!("../../data/bg.svg") };
     pub const BG_ALT: LayerContent =
         LayerContent::Svg { id: u32::MAX - 1, data: include_bytes!("../../data/bg_alt.svg") };
+    pub const BG_HOVER: LayerContent =
+        LayerContent::Svg { id: u32::MAX - 2, data: include_bytes!("../../data/bg_hover.svg") };
 
     pub const WS_EMPTY: LayerContent =
-        LayerContent::Svg { id: u32::MAX - 2, data: include_bytes!("../../data/ws_empty.svg") };
+        LayerContent::Svg { id: u32::MAX - 3, data: include_bytes!("../../data/ws_empty.svg") };
     pub const WS_FULL: LayerContent =
-        LayerContent::Svg { id: u32::MAX - 3, data: include_bytes!("../../data/ws_full.svg") };
+        LayerContent::Svg { id: u32::MAX - 4, data: include_bytes!("../../data/ws_full.svg") };
 
     pub const BG_CORNER_LEFT: LayerContent = LayerContent::Svg {
-        id: u32::MAX - 4,
+        id: u32::MAX - 5,
         data: include_bytes!("../../data/bg_corner_left.svg"),
     };
     pub const BG_CORNER_RIGHT: LayerContent = LayerContent::Svg {
-        id: u32::MAX - 5,
+        id: u32::MAX - 6,
         data: include_bytes!("../../data/bg_corner_right.svg"),
     };
 }
