@@ -243,46 +243,48 @@ impl SwayIpc {
         let mut icon = None;
 
         // For applications, immediately return the `app_id` and icon.
+        let icon_name = node.app_id.or(node.window_properties.class);
         if node.node_type == NodeType::Con
-            && let Some(app_id) = node.app_id
+            && let Some(icon_name) = icon_name
         {
-            let icon = match icon_loader.icon_path(&app_id) {
+            let icon = match icon_loader.icon_path(&icon_name) {
                 Some(icon) => icon.to_path_buf().into(),
                 None => svg_layers::WS_FULL,
             };
-            return Some((app_id, icon));
+            return Some((icon_name, icon));
         }
 
         // For containers, check whether any child has a better icon.
         for node in node.nodes {
             // Get icon for this child node.
-            let (child_app_id, child_icon) = match Self::workspace_icon(icon_loader, node) {
+            let (child_icon_name, child_icon) = match Self::workspace_icon(icon_loader, node) {
                 Some(child_icon) => child_icon,
                 None => continue,
             };
 
             // Short-circuit if this is the first icon we've found.
-            let (app_id, icon) = match &mut icon {
+            let (icon_name, icon) = match &mut icon {
                 Some(icon) => icon,
                 None => {
-                    icon = Some((child_app_id, child_icon));
+                    icon = Some((child_icon_name, child_icon));
                     continue;
                 },
             };
 
             // Always replace built-in `WS_FULL` icons.
             if matches!(icon, LayerContent::Svg { .. }) {
-                *app_id = child_app_id;
+                *icon_name = child_icon_name;
                 *icon = child_icon;
                 continue;
             }
 
             // Determine priority based on fallback list.
-            let priority = ICON_PRIORITY.iter().position(|id| app_id == id).unwrap_or(usize::MAX);
+            let priority =
+                ICON_PRIORITY.iter().position(|id| icon_name == id).unwrap_or(usize::MAX);
             let child_priority =
-                ICON_PRIORITY.iter().position(|id| &child_app_id == id).unwrap_or(usize::MAX);
+                ICON_PRIORITY.iter().position(|id| &child_icon_name == id).unwrap_or(usize::MAX);
             if child_priority < priority {
-                *app_id = child_app_id;
+                *icon_name = child_icon_name;
                 *icon = child_icon;
             }
         }
@@ -412,7 +414,17 @@ struct Node {
     app_id: Option<String>,
     current_workspace: Option<String>,
 
+    #[serde(default)]
+    window_properties: WindowProperties,
+
     nodes: Vec<Node>,
+}
+
+/// X11 window properties.
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct WindowProperties {
+    class: Option<String>,
 }
 
 #[derive(Deserialize, PartialEq, Eq, Debug)]
