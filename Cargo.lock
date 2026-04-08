@@ -1904,7 +1904,7 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 [[package]]
 name = "stele"
 version = "0.1.0"
-source = "git+https://github.com/chrisduerr/stele#d5562b84e95ca1404fa5021d3df603ecdd060011"
+source = "git+https://github.com/chrisduerr/stele#2bc25741102ee2e7b17ea28d136da6308f4041ab"
 dependencies = [
  "calloop",
  "calloop-wayland-source",
@@ -1932,7 +1932,7 @@ dependencies = [
 [[package]]
 name = "stele_ipc"
 version = "0.1.0"
-source = "git+https://github.com/chrisduerr/stele#d5562b84e95ca1404fa5021d3df603ecdd060011"
+source = "git+https://github.com/chrisduerr/stele#2bc25741102ee2e7b17ea28d136da6308f4041ab"
 dependencies = [
  "clap",
  "dirs",

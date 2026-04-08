@@ -7,6 +7,15 @@ use tracing_subscriber::{EnvFilter, FmtSubscriber};
 mod modules;
 mod xdg;
 
+/// Height of the bar.
+pub const BAR_SIZE: u32 = 35;
+
+/// Width and height for workspace icons.
+pub const ICON_SIZE: u32 = 24;
+
+/// Padding around workspace icons.
+pub const ICON_PADDING: u32 = 6;
+
 fn main() {
     // Get output name from args.
     let output_name = match env::args().nth(1) {
@@ -38,7 +47,7 @@ fn main() {
 pub fn config(state: &mut State, output_name: String, workspace_empty: bool) -> Config {
     let mut config = Config::new();
     config.output = Some(output_name);
-    config.size = Some(35);
+    config.size = Some(BAR_SIZE);
 
     if workspace_empty {
         // Add corner for left modules.

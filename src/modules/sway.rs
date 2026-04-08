@@ -10,14 +10,14 @@ use stele::calloop::generic::Generic;
 use stele::calloop::{
     self, EventSource, Interest, LoopHandle, Mode, Poll, PostAction, Readiness, Token, TokenFactory,
 };
-use stele::{Alignment, LayerContent, LayerModes, Module, ModuleLayer, Program, Size, State};
+use stele::{
+    Alignment, Color, LayerContent, LayerModes, Margin, Module, ModuleLayer, Program, Size, State,
+};
 use tracing::error;
 
 use crate::modules::svg_layers;
 use crate::xdg::IconLoader;
-
-/// Workspace icon size.
-pub const ICON_SIZE: u32 = 24;
+use crate::{ICON_PADDING, ICON_SIZE};
 
 /// Priority for workspace icons using their `app_id`.
 ///
@@ -48,13 +48,11 @@ pub fn register(event_loop: &LoopHandle<'static, State>, output_name: String) {
 #[allow(clippy::ptr_arg)]
 fn update_module(_: (), ipc: &mut SwayIpc, state: &mut State) {
     // Create background layers.
-    let mut bg_layer = ModuleLayer::new(svg_layers::BG);
-    bg_layer.size.width = 35;
-    let mut bg_alt_layer = ModuleLayer::new(svg_layers::BG_ALT);
-    bg_alt_layer.size.width = 35;
-    let mut hover_bg_layer = ModuleLayer::new(svg_layers::BG_HOVER);
-    hover_bg_layer.size.width = 35;
-    hover_bg_layer.modes = LayerModes { default: false, hover: true, active: true };
+    //
+    // We use a background color layer to automatically size the background SVGs.
+    let bg_color = ModuleLayer::new(Color::new(24, 24, 24));
+    let mut hover_bg = ModuleLayer::new(svg_layers::BG_HOVER);
+    hover_bg.modes = LayerModes { default: false, hover: true, active: true };
 
     // Add module for each workspace.
     let mut focused_empty = false;
@@ -62,20 +60,20 @@ fn update_module(_: (), ipc: &mut SwayIpc, state: &mut State) {
         // Update whether there's currently any window visible.
         focused_empty |= workspace.focused && workspace.icon.is_none();
 
-        let bg_layer = if workspace.focused { bg_alt_layer.clone() } else { bg_layer.clone() };
+        let bg_svg = if workspace.focused { svg_layers::BG_ALT } else { svg_layers::BG };
 
         let ws_icon = workspace.icon.clone().unwrap_or(svg_layers::WS_EMPTY);
         let mut ws_layer = ModuleLayer::new(ws_icon);
         ws_layer.size = Size::new(ICON_SIZE, ICON_SIZE);
-        ws_layer.margin.bottom = 3;
+        ws_layer.margin = Margin::new(0, ICON_PADDING, 3, ICON_PADDING);
 
-        let layers = vec![bg_layer, hover_bg_layer.clone(), ws_layer];
+        let layers = vec![bg_color.clone(), bg_svg.into(), hover_bg.clone(), ws_layer];
         let mut module = Module::new(format!("ws_{i}"), Alignment::Center, layers);
         module.index = 1 + i as u8;
 
         // Switch to this workspace on click.
         let switch_cmd = format!("workspace {}-{i}", ipc.output_name);
-        module.onclick = Some(Program { program: "swaymsg".into(), args: vec![switch_cmd] });
+        module.onclick = Some(Program::new("swaymsg", vec![switch_cmd]));
 
         state.update_module(module);
     }

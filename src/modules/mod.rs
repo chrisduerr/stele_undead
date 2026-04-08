@@ -3,6 +3,8 @@
 use stele::calloop::LoopHandle;
 use stele::{Alignment, Module, ModuleLayer, Size, State};
 
+use crate::BAR_SIZE;
+
 mod clock;
 pub mod sway;
 
@@ -46,7 +48,7 @@ pub fn register(event_loop: &LoopHandle<'static, State>, output_name: String) {
 pub fn corner_module(id: &str, alignment: Alignment, left: bool) -> Module {
     let svg = if left { svg_layers::BG_CORNER_LEFT } else { svg_layers::BG_CORNER_RIGHT };
     let mut corner = ModuleLayer::new(svg);
-    corner.size = Size::new(35, 35);
+    corner.size = Size::new(BAR_SIZE, BAR_SIZE);
 
     Module::new(id, alignment, vec![corner])
 }
