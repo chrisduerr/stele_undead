@@ -11,7 +11,7 @@ pub mod sway;
 // By storing the layer content, instead of the SVG data, we make sure the
 // content IDs are shared. We count down from `u32::MAX` to avoid conflicts with
 // auto-generated IDs.
-mod svg_layers {
+pub mod svg_layers {
     use stele::LayerContent;
 
     pub const BG: LayerContent =

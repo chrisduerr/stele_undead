@@ -7,7 +7,6 @@ use stele::calloop::LoopHandle;
 use stele::calloop::timer::{TimeoutAction, Timer};
 use stele::{Alignment, Color, Margin, Module, ModuleLayer, State};
 
-use crate::modules;
 use crate::modules::svg_layers;
 
 /// Add the clock and date modules to the bar.
@@ -32,16 +31,6 @@ fn update_module(_: Instant, _: &mut (), state: &mut State) -> TimeoutAction {
     let mut module = Module::new("date_module", Alignment::Start, layers);
     module.index = 0;
     state.update_module(module);
-
-    // Add date corner SVG module.
-    let mut corner_right = modules::corner_module("date_corner", Alignment::Start, false);
-    corner_right.index = 1;
-    state.update_module(corner_right);
-
-    // Add time corner SVG module.
-    let mut corner_left = modules::corner_module("time_corner", Alignment::End, true);
-    corner_left.index = 0;
-    state.update_module(corner_left);
 
     // Create time text layer.
     let time = now.format("%H:%M").to_string();

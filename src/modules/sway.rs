@@ -13,7 +13,6 @@ use stele::calloop::{
 use stele::{Alignment, LayerContent, LayerModes, Module, ModuleLayer, Program, Size, State};
 use tracing::error;
 
-use crate::modules;
 use crate::modules::svg_layers;
 use crate::xdg::IconLoader;
 
@@ -48,11 +47,6 @@ pub fn register(event_loop: &LoopHandle<'static, State>, output_name: String) {
 
 #[allow(clippy::ptr_arg)]
 fn update_module(_: (), ipc: &mut SwayIpc, state: &mut State) {
-    // Add left corner SVG module.
-    let mut corner_left = modules::corner_module("ws_corner_left", Alignment::Center, true);
-    corner_left.index = 0;
-    state.update_module(corner_left);
-
     // Create background layers.
     let mut bg_layer = ModuleLayer::new(svg_layers::BG);
     bg_layer.size.width = 35;
@@ -63,10 +57,15 @@ fn update_module(_: (), ipc: &mut SwayIpc, state: &mut State) {
     hover_bg_layer.modes = LayerModes { default: false, hover: true, active: true };
 
     // Add module for each workspace.
+    let mut focused_empty = false;
     for (i, workspace) in ipc.workspaces.iter().enumerate() {
+        // Update whether there's currently any window visible.
+        focused_empty |= workspace.focused && workspace.icon.is_none();
+
         let bg_layer = if workspace.focused { bg_alt_layer.clone() } else { bg_layer.clone() };
 
-        let mut ws_layer = ModuleLayer::new(workspace.icon.clone());
+        let ws_icon = workspace.icon.clone().unwrap_or(svg_layers::WS_EMPTY);
+        let mut ws_layer = ModuleLayer::new(ws_icon);
         ws_layer.size = Size::new(ICON_SIZE, ICON_SIZE);
         ws_layer.margin.bottom = 3;
 
@@ -81,23 +80,19 @@ fn update_module(_: (), ipc: &mut SwayIpc, state: &mut State) {
         state.update_module(module);
     }
 
-    // Add right corner SVG module.
-    let mut corner_right = modules::corner_module("ws_corner_right", Alignment::Center, false);
-    corner_right.index = u8::MAX;
-    state.update_module(corner_right);
+    // Update bar config workspace emptiness changed.
+    if focused_empty != ipc.last_focused_empty {
+        ipc.last_focused_empty = focused_empty;
+        let config = crate::config(state, String::new(), focused_empty);
+        state.update_config(config);
+    }
 }
 
 /// Current workspace state.
-#[derive(Clone)]
+#[derive(Default, Clone)]
 struct Workspace {
-    icon: LayerContent,
+    icon: Option<LayerContent>,
     focused: bool,
-}
-
-impl Default for Workspace {
-    fn default() -> Self {
-        Self { icon: svg_layers::WS_EMPTY, focused: Default::default() }
-    }
 }
 
 /// Sway IPC calloop source.
@@ -108,6 +103,7 @@ struct SwayIpc {
     bytes_read: usize,
 
     workspaces: Vec<Workspace>,
+    last_focused_empty: bool,
     output_name: String,
 
     icon_loader: IconLoader,
@@ -139,6 +135,7 @@ impl SwayIpc {
             socket: Some(Generic::new(socket, Interest::READ, Mode::Level)),
             icon_loader: IconLoader::new(),
             buffer: vec![0; HEADER_SIZE],
+            last_focused_empty: true,
             bytes_read: Default::default(),
         }
     }
@@ -231,7 +228,7 @@ impl SwayIpc {
 
             // Update workspace icon.
             let icon = Self::workspace_icon(&mut self.icon_loader, workspace_node);
-            workspace.icon = icon.map_or(svg_layers::WS_EMPTY, |(_, icon)| icon);
+            workspace.icon = icon.map(|(_, icon)| icon);
         }
     }
 
