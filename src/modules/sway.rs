@@ -87,10 +87,15 @@ fn update_module(_: (), ipc: &mut SwayIpc, state: &mut State) {
 }
 
 /// Current workspace state.
-#[derive(Default, Clone)]
 struct Workspace {
     icon: Option<LayerContent>,
     focused: bool,
+}
+
+impl Workspace {
+    const fn empty() -> Workspace {
+        Self { icon: None, focused: false }
+    }
 }
 
 /// Sway IPC calloop source.
@@ -100,7 +105,7 @@ struct SwayIpc {
     buffer: Vec<u8>,
     bytes_read: usize,
 
-    workspaces: Vec<Workspace>,
+    workspaces: [Workspace; 5],
     last_focused_empty: bool,
     output_name: String,
 
@@ -118,7 +123,8 @@ impl SwayIpc {
         socket.set_nonblocking(true).unwrap();
 
         // Initialize all workspaces as empty.
-        let workspaces = vec![Workspace::default(); WORKSPACE_COUNT];
+        const DEFAULT_WORKSPACE: Workspace = Workspace::empty();
+        let workspaces = [DEFAULT_WORKSPACE; WORKSPACE_COUNT];
 
         // Subscribe to Sway events.
         let payload = br#"["workspace", "window"]"#;
@@ -187,7 +193,7 @@ impl SwayIpc {
 
         // Reset all workspaces, since they might no longer exist.
         for workspace in &mut self.workspaces {
-            *workspace = Workspace::default();
+            *workspace = Workspace::empty();
         }
 
         // Get output node from tree.
